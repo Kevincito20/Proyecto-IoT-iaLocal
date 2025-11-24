@@ -1,7 +1,11 @@
 from fastapi import APIRouter
 
 from app.models.modelos_tutor import SolicitudTutor, RespuestaTutor
-from app.services.servicio_tutor import tutor, obtener_materia_normalizada, es_tarea_sin_contexto
+from app.services.servicio_tutor import (
+    tutor,
+    obtener_materia_normalizada,
+    es_tarea_sin_contexto,
+)
 
 enrutador = APIRouter(prefix="/tutor", tags=["tutor"])
 
@@ -11,7 +15,11 @@ async def invocar_tutor(solicitud: SolicitudTutor) -> RespuestaTutor:
     """
     Endpoint principal del tutor educativo local.
     """
-    respuesta_texto = await tutor(solicitud.mensaje, solicitud.materia)
+    respuesta_texto = await tutor(
+        solicitud.mensaje,
+        solicitud.materia,
+        solicitud.mensajes_anteriores,
+    )
 
     materia_detectada = obtener_materia_normalizada(solicitud.materia)
     tarea_flag = es_tarea_sin_contexto(solicitud.mensaje)

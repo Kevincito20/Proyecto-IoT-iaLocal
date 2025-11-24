@@ -9,10 +9,13 @@ def test_tutor_respuesta_basica(client):
 
     datos = respuesta.json()
     assert "respuesta" in datos
-    assert "materia_detectada" in datos
-    assert "es_tarea_sin_contexto" in datos
+    assert isinstance(datos["respuesta"], str)
+    assert len(datos["respuesta"]) > 0
 
+    assert "materia_detectada" in datos
     assert datos["materia_detectada"] == "física"
+
+    assert "es_tarea_sin_contexto" in datos
     assert datos["es_tarea_sin_contexto"] is False
 
 
@@ -27,5 +30,5 @@ def test_tutor_palabra_prohibida(client):
 
     datos = respuesta.json()
     assert "respuesta" in datos
-    # En este caso, la respuesta debe ser el mensaje de bloqueo, no la simulación del LLM
+    # Aquí esperamos el mensaje de bloqueo, que no depende de Ollama
     assert "Lo siento, no puedo ayudarte con esa solicitud" in datos["respuesta"]

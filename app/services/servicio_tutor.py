@@ -1,13 +1,15 @@
-from typing import Optional
+from typing import Optional, List
 
-from app.services.servicio_llm import generar_respuesta_ia
+from app.models.modelos_tutor import Mensaje
 from app.services.servicio_prompt import construir_prompt_pedagogico
+from app.services.servicio_llm import generar_respuesta_ia
+
 
 PALABRAS_PROHIBIDAS = {
     "suicidio", "matar", "asesinar", "violación", "violacion",
     "pornografía", "porno", "drogas fuertes", "droga fuerte",
     "terrorismo", "bombas", "explosivos", "homicidio", "asesinato",
-    "secuestrar", "secuestro", "trafico de personas"
+    "secuestrar", "secuestro", "trafico de personas", "tráfico de personas",
 }
 
 MATERIAS_RECONOCIDAS = {
@@ -36,16 +38,24 @@ LONGITUD_MIN_TAREA = 15
 
 
 def _normalizar_texto(texto: str) -> str:
+    """Normaliza un texto quitando espacios y pasando a minúsculas."""
     return texto.strip().lower()
 
 
 def _detectar_palabras_prohibidas(texto: str) -> bool:
-    """Devuelve True si el texto contiene alguna palabra prohibida."""
+    """
+    Devuelve True si el texto contiene alguna palabra prohibida.
+
+    Se usa para bloquear contenido sensible o inapropiado.
+    """
     texto_min = texto.lower()
     return any(palabra in texto_min for palabra in PALABRAS_PROHIBIDAS)
 
 
 def _detectar_materia(materia: Optional[str]) -> Optional[str]:
+    """
+    Devuelve la materia normalizada si se reconoce, o None si no.
+    """
     if not materia:
         return None
 
@@ -62,11 +72,20 @@ def obtener_materia_normalizada(materia: Optional[str]) -> Optional[str]:
 
 
 def es_tarea_sin_contexto(mensaje: str) -> bool:
+    """
+    Determina si la solicitud del estudiante parece ser una tarea
+    con poco o ningún contexto.
+
+    Esto se usa para ajustar el comportamiento pedagógico
+    (por ejemplo, pedir que el modelo no haga solo la tarea).
+    """
     texto = mensaje.strip()
 
+    # Operadores típicos de ejercicios matemáticos/físicos
     if len(texto) < 40 and any(s in texto for s in ["=", "/", "√", "^", "+", "-"]):
         return True
 
+    # Muy poca longitud en general: probablemente no hay contexto
     if len(texto) < LONGITUD_MIN_TAREA:
         return True
 
@@ -77,29 +96,41 @@ def es_tarea_sin_contexto(mensaje: str) -> bool:
     return False
 
 
-async def tutor(mensaje: str, materia: Optional[str] = None) -> str:
+async def tutor(
+    mensaje: str,
+    materia: Optional[str] = None,
+    mensajes_anteriores: Optional[List[Mensaje]] = None,
+) -> str:
     """
     Lógica principal del tutor educativo.
 
-    - Valida la entrada y aplica filtros de seguridad.
-    - Si el contenido es adecuado, construye un prompt pedagógico
-      y llama al modelo de IA local (Ollama) a través de un servicio LLM.
+    Responsabilidades:
+    - Validar la entrada del usuario (longitud, contenido vacío).
+    - Aplicar filtros de seguridad (palabras prohibidas).
+    - Detectar materia y si la solicitud parece tarea sin contexto.
+    - Construir un prompt pedagógico usando el historial de conversación.
+    - Llamar al modelo de IA local a través de generar_respuesta_ia().
+
+    Devuelve un texto en español listo para mostrarse al estudiante.
     """
 
     mensaje_limpio = mensaje.strip()
 
+    # Validación básica: mensaje vacío
     if not mensaje_limpio:
         return (
             "No has proporcionado ninguna pregunta o tarea. "
             "Por favor, ingresa una pregunta o ejercicio para que pueda ayudarte."
         )
 
+    # Longitud máxima para proteger recursos (especialmente en Raspberry Pi)
     if len(mensaje_limpio) > LONGITUD_MAXIMA_PREGUNTA:
         return (
             f"La pregunta o tarea es demasiado larga. "
             f"Por favor, limita tu entrada a {LONGITUD_MAXIMA_PREGUNTA} caracteres."
         )
 
+    # Filtro de contenido sensible
     if _detectar_palabras_prohibidas(mensaje_limpio):
         return (
             "Lo siento, no puedo ayudarte con esa solicitud debido a la naturaleza del contenido. "
@@ -108,17 +139,20 @@ async def tutor(mensaje: str, materia: Optional[str] = None) -> str:
             "de la escuela."
         )
 
+    # Detección de materia y tarea sin contexto
     materia_detectada = _detectar_materia(materia)
     tarea_sin_contexto = es_tarea_sin_contexto(mensaje_limpio)
 
+    # Construcción del prompt pedagógico,
+    # incluyendo historial si viene en mensajes_anteriores
     prompt = construir_prompt_pedagogico(
         mensaje_usuario=mensaje_limpio,
         materia_norm=materia_detectada,
         es_tarea_sin_contexto=tarea_sin_contexto,
+        mensajes_anteriores=mensajes_anteriores,
     )
 
-    # FASE 2: aún NO usamos un modelo real.
-    # generar_respuesta_ia devolverá un mensaje simulado.
+    # Llamada al modelo de IA local (Ollama + phi3:mini, configurado en servicio_llm)
     respuesta_ia = await generar_respuesta_ia(prompt)
 
     return respuesta_ia
