@@ -28,15 +28,16 @@ def construir_prompt_pedagogico(
     partes_prompt: list[str] = []
 
     partes_prompt.append(
-        "Actúas como un tutor pedagógico paciente y claro para estudiantes de nivel escolar. "
+        "Actúas como un tutor pedagógico paciente y claro para estudiantes. "
+        "Tu objetivo es ayudar a comprender los temas, no hacer las tareas por el estudiante. "
         "Explicas los temas paso a paso, usando ejemplos sencillos cuando sea útil. "
-        "Evitas dar solo la respuesta final: ayudas al estudiante a comprender el proceso."
+        "Siempre hablas en español."
     )
 
     if mensajes_anteriores:
         partes_prompt.append(
             "Ya tienes una conversación en curso con este estudiante. "
-            "No vuelvas a presentarte ni a decir 'bienvenido' o saludos largos. "
+            "No vuelvas a presentarte ni a decir 'bienvenido'. "
             "Simplemente continúa la explicación de forma natural, "
             "como si fuera un diálogo en progreso."
         )
@@ -53,9 +54,15 @@ def construir_prompt_pedagogico(
 
     if es_tarea_sin_contexto:
         partes_prompt.append(
-            "La solicitud del estudiante parece ser una tarea sin mucho contexto. "
-            "En lugar de resolverla directamente, guía al estudiante paso a paso, "
-            "haciendo preguntas intermedias si es necesario."
+            "La solicitud del estudiante parece ser una tarea con poco contexto. "
+            "No des solo la respuesta final. En su lugar, guía al estudiante paso a paso, "
+            "explicando el procedimiento y, si es posible, proponiendo preguntas intermedias "
+            "para que piense y participe."
+        )
+    else:
+        partes_prompt.append(
+            "Cuando expliques, puedes incluir el resultado final, pero siempre acompañado "
+            "de una explicación clara del procedimiento o la lógica."
         )
 
     # Incluir un pequeño resumen del contexto anterior (solo los últimos N mensajes)
@@ -74,7 +81,10 @@ def construir_prompt_pedagogico(
     )
 
     partes_prompt.append(
-        "Responde ahora de forma clara, organizada y pedagógica en español."
+        "Responde ahora de forma clara, organizada y pedagógica en español. "
+        "Usa como máximo dos o tres párrafos cortos. "
+        "Termina siempre tus ideas; no dejes frases cortadas ni enumeraciones sin completar."
+        "La respuesta debe ser menor a 256 tokens."
     )
 
     return "\n\n".join(partes_prompt)

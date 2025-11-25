@@ -1,16 +1,73 @@
-from typing import Optional, List
+from typing import Optional, List, Tuple
 
 from app.models.modelos_tutor import Mensaje
 from app.services.servicio_prompt import construir_prompt_pedagogico
 from app.services.servicio_llm import generar_respuesta_ia
 
 
-PALABRAS_PROHIBIDAS = {
-    "suicidio", "matar", "asesinar", "violación", "violacion",
-    "pornografía", "porno", "drogas fuertes", "droga fuerte",
-    "terrorismo", "bombas", "explosivos", "homicidio", "asesinato",
-    "secuestrar", "secuestro", "trafico de personas", "tráfico de personas",
+# ----------------------------
+# Listas de palabras sensibles
+# ----------------------------
+
+PALABRAS_AUTODANO = {
+    "suicidio",
+    "suicidarme",
+    "matarme",
+    "hacerme daño",
+    "autolesion",
+    "autolesión",
+    "quiero morir",
+    "no quiero vivir",
 }
+
+PALABRAS_VIOLENCIA_GRAVE = {
+    "matar",
+    "asesinar",
+    "asesinato",
+    "homicidio",
+    "tortura",
+    "golpear hasta",
+    "violación",
+    "violacion",
+    "secuestrar",
+    "secuestro",
+}
+
+PALABRAS_SEXUALES_EXPLICITAS = {
+    "pornografía",
+    "pornografia",
+    "porno",
+    "sexo explicito",
+    "sexo explícito",
+    "sexual infantil",
+}
+
+PALABRAS_DROGAS = {
+    "drogas fuertes",
+    "droga fuerte",
+    "cocaína",
+    "cocaina",
+    "heroína",
+    "heroina",
+    "metanfetamina",
+}
+
+PALABRAS_TERRORISMO = {
+    "terrorismo",
+    "bomba",
+    "bombas",
+    "explosivos",
+    "fabricar bomba",
+}
+
+# Combina todo para comprobaciones generales si hiciera falta
+PALABRAS_PROHIBIDAS = (
+    PALABRAS_AUTODANO
+    | PALABRAS_VIOLENCIA_GRAVE
+    | PALABRAS_SEXUALES_EXPLICITAS
+    | PALABRAS_DROGAS
+    | PALABRAS_TERRORISMO
+)
 
 MATERIAS_RECONOCIDAS = {
     "matematicas": "matemáticas",
@@ -37,19 +94,44 @@ LONGITUD_MAXIMA_PREGUNTA = 500
 LONGITUD_MIN_TAREA = 15
 
 
+# ----------------------------
+# Funciones auxiliares
+# ----------------------------
+
 def _normalizar_texto(texto: str) -> str:
     """Normaliza un texto quitando espacios y pasando a minúsculas."""
     return texto.strip().lower()
 
 
-def _detectar_palabras_prohibidas(texto: str) -> bool:
+def _detectar_categoria_contenido_no_educativo(texto: str) -> Tuple[bool, Optional[str]]:
     """
-    Devuelve True si el texto contiene alguna palabra prohibida.
+    Detecta si el texto contiene contenido sensible/no educativo.
+    Devuelve (True, categoria) si debe bloquearse, o (False, None) si no.
+    """
+    t = texto.lower()
 
-    Se usa para bloquear contenido sensible o inapropiado.
-    """
-    texto_min = texto.lower()
-    return any(palabra in texto_min for palabra in PALABRAS_PROHIBIDAS)
+    # Orden aproximado por gravedad
+    for palabra in PALABRAS_AUTODANO:
+        if palabra in t:
+            return True, "autodaño"
+
+    for palabra in PALABRAS_VIOLENCIA_GRAVE:
+        if palabra in t:
+            return True, "violencia grave"
+
+    for palabra in PALABRAS_SEXUALES_EXPLICITAS:
+        if palabra in t:
+            return True, "contenido sexual explícito"
+
+    for palabra in PALABRAS_DROGAS:
+        if palabra in t:
+            return True, "drogas ilegales"
+
+    for palabra in PALABRAS_TERRORISMO:
+        if palabra in t:
+            return True, "terrorismo o uso de explosivos"
+
+    return False, None
 
 
 def _detectar_materia(materia: Optional[str]) -> Optional[str]:
@@ -96,6 +178,10 @@ def es_tarea_sin_contexto(mensaje: str) -> bool:
     return False
 
 
+# ----------------------------
+# Lógica principal del tutor
+# ----------------------------
+
 async def tutor(
     mensaje: str,
     materia: Optional[str] = None,
@@ -106,7 +192,7 @@ async def tutor(
 
     Responsabilidades:
     - Validar la entrada del usuario (longitud, contenido vacío).
-    - Aplicar filtros de seguridad (palabras prohibidas).
+    - Aplicar filtros de seguridad (contenido sensible).
     - Detectar materia y si la solicitud parece tarea sin contexto.
     - Construir un prompt pedagógico usando el historial de conversación.
     - Llamar al modelo de IA local a través de generar_respuesta_ia().
@@ -130,13 +216,24 @@ async def tutor(
             f"Por favor, limita tu entrada a {LONGITUD_MAXIMA_PREGUNTA} caracteres."
         )
 
-    # Filtro de contenido sensible
-    if _detectar_palabras_prohibidas(mensaje_limpio):
+    # Filtro de contenido sensible / no educativo
+    hay_contenido_no_educativo, categoria = _detectar_categoria_contenido_no_educativo(
+        mensaje_limpio
+    )
+    if hay_contenido_no_educativo:
+        if categoria == "autodaño":
+            return (
+                "Parece que estás hablando de hacerte daño o de no querer seguir viviendo. "
+                "Lamento que te sientas así, pero no puedo ayudarte con este tipo de solicitud. "
+                "Es muy importante que hables con un adulto de confianza, como tu docente, "
+                "un familiar cercano o el orientador de la escuela. "
+                "Si en tu país existe una línea de ayuda emocional, también puede ser una buena opción."
+            )
+
         return (
-            "Lo siento, no puedo ayudarte con esa solicitud debido a la naturaleza del contenido. "
-            "Si tienes una duda personal o emocional, es mejor que hables con "
-            "un adulto de confianza, como tu docente, un familiar o el orientador "
-            "de la escuela."
+            "Lo siento, no puedo ayudarte con esa solicitud debido a la naturaleza del contenido "
+            f"({categoria}). Este asistente está pensado solo para apoyar en temas educativos. "
+            "Si tienes dudas académicas o necesitas ayuda con alguna materia, con gusto puedo ayudarte."
         )
 
     # Detección de materia y tarea sin contexto
