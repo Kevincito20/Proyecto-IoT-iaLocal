@@ -1,7 +1,7 @@
 from fastapi import APIRouter
 import httpx
 
-from app.configuracion.ajustes import ajustes
+from app.configuration.ajustes import ajustes
 
 
 enrutador_sistema = APIRouter(tags=["sistema"])

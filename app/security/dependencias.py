@@ -1,6 +1,6 @@
 from fastapi import Header, HTTPException, status
 
-from app.configuracion.ajustes import ajustes
+from app.configuration.ajustes import ajustes
 
 
 async def verificar_token_api(x_token_api: str = Header(...)) -> None:

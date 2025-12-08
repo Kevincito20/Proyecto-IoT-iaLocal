@@ -4,7 +4,7 @@ from typing import AsyncGenerator
 
 import httpx
 
-from app.configuracion.ajustes import ajustes
+from app.configuration.ajustes import ajustes
 
 
 _cliente_http: httpx.AsyncClient | None = None

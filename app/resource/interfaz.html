@@ -102,6 +102,43 @@
             box-shadow: 0 0 0 4px rgba(34, 197, 94, 0.25);
         }
 
+        .barra-conversaciones {
+            padding: 8px 16px 4px 16px;
+            border-bottom: 1px solid #111827;
+            background: #020617;
+        }
+
+        .titulo-conversaciones {
+            font-size: 0.75rem;
+            text-transform: uppercase;
+            letter-spacing: 0.08em;
+            color: #6b7280;
+            margin-bottom: 4px;
+        }
+
+        .lista-conversaciones {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 6px;
+        }
+
+        .pill-conversacion {
+            font-size: 0.8rem;
+            padding: 4px 10px;
+            border-radius: 999px;
+            border: 1px solid #374151;
+            background: #020617;
+            color: #e5e7eb;
+            cursor: pointer;
+            transition: background-color 0.12s ease, border-color 0.12s ease, color 0.12s ease;
+        }
+
+        .pill-conversacion-activa {
+            background: #22c55e;
+            border-color: #16a34a;
+            color: #022c22;
+        }
+
         .area-chat {
             flex: 1;
             padding: 16px;
@@ -282,6 +319,11 @@
             </div>
         </div>
 
+        <div class="barra-conversaciones">
+            <div class="titulo-conversaciones">Conversaciones recientes</div>
+            <div id="listaConversaciones" class="lista-conversaciones"></div>
+        </div>
+
         <div id="areaChat" class="area-chat">
             <div class="mensaje mensaje-tutor">
                 Bienvenido. Escriba una pregunta sobre un tema escolar y la respuesta se generará en esta conversación.
@@ -318,11 +360,13 @@
     const textoEstadoPie = document.getElementById("textoEstadoPie");
     const textoEstadoCabecera = document.getElementById("textoEstadoCabecera");
     const indicadorEstado = document.getElementById("indicadorEstado");
+    const listaConversaciones = document.getElementById("listaConversaciones");
 
     const historial = [];
+    let idConversacionActual = null;
 
-    const URL_BACKEND = "";
-    const TOKEN_API = "mi_token_secreto_123";
+    const URL_BACKEND = "";                 // Cuando lo sirvas desde el ESP32 pondrás aquí "http://ip_raspberry:8000"
+    const TOKEN_API = "123456789abcdef";
 
     function agregarMensaje(texto, esUsuario) {
         const elemento = document.createElement("div");
@@ -358,6 +402,117 @@
             "\"";
 
         return textoCompleto;
+    }
+
+    function renderizarListaConversaciones(datosResumen) {
+        listaConversaciones.innerHTML = "";
+
+        const conversaciones = datosResumen.conversaciones || [];
+        idConversacionActual = datosResumen.id_actual || null;
+
+        if (conversaciones.length === 0) {
+            const etiqueta = document.createElement("span");
+            etiqueta.textContent = "No hay conversaciones aún.";
+            etiqueta.style.fontSize = "0.8rem";
+            etiqueta.style.color = "#6b7280";
+            listaConversaciones.appendChild(etiqueta);
+            return;
+        }
+
+        conversaciones.forEach((conv) => {
+            const boton = document.createElement("button");
+            boton.type = "button";
+            boton.classList.add("pill-conversacion");
+
+            if (conv.id_conversacion === idConversacionActual) {
+                boton.classList.add("pill-conversacion-activa");
+            }
+
+            boton.textContent = "Conv. " + conv.id_conversacion;
+            boton.addEventListener("click", () => {
+                activarConversacion(conv.id_conversacion);
+            });
+
+            listaConversaciones.appendChild(boton);
+        });
+    }
+
+    async function cargarResumenConversaciones() {
+        try {
+            const respuesta = await fetch((URL_BACKEND || "") + "/api/conversaciones/resumen", {
+                method: "GET",
+                headers: {
+                    "X-Token-Api": TOKEN_API
+                }
+            });
+
+            if (!respuesta.ok) {
+                throw new Error("No se pudo obtener el resumen de conversaciones");
+            }
+
+            const datos = await respuesta.json();
+            renderizarListaConversaciones(datos);
+        } catch (error) {
+            listaConversaciones.innerHTML = "";
+            const etiqueta = document.createElement("span");
+            etiqueta.textContent = "No se pudo cargar el listado de conversaciones.";
+            etiqueta.style.fontSize = "0.8rem";
+            etiqueta.style.color = "#f97316";
+            listaConversaciones.appendChild(etiqueta);
+        }
+    }
+
+    async function activarConversacion(idConversacion) {
+        try {
+            textoEstadoPie.textContent = "Cargando conversación...";
+            textoEstadoCabecera.textContent = "Cargando";
+
+            const respuestaActivar = await fetch((URL_BACKEND || "") + `/api/conversaciones/${idConversacion}/activar`, {
+                method: "POST",
+                headers: {
+                    "Content-Type": "application/json",
+                    "X-Token-Api": TOKEN_API
+                },
+                body: "{}"
+            });
+
+            if (!respuestaActivar.ok) {
+                throw new Error("No se pudo activar la conversación");
+            }
+
+            const respuestaMensajes = await fetch((URL_BACKEND || "") + `/api/conversaciones/${idConversacion}`, {
+                method: "GET",
+                headers: {
+                    "X-Token-Api": TOKEN_API
+                }
+            });
+
+            if (!respuestaMensajes.ok) {
+                throw new Error("No se pudo obtener los mensajes de la conversación");
+            }
+
+            const datos = await respuestaMensajes.json();
+
+            areaChat.innerHTML = "";
+            historial.length = 0;
+
+            (datos.mensajes || []).forEach((mensaje) => {
+                const esUsuario = mensaje.rol === "usuario";
+                agregarMensaje(mensaje.contenido, esUsuario);
+                historial.push({
+                    rol: mensaje.rol,
+                    texto: mensaje.contenido
+                });
+            });
+
+            textoEstadoPie.textContent = "Conversación cargada.";
+            textoEstadoCabecera.textContent = "Conectado";
+
+            await cargarResumenConversaciones();
+        } catch (error) {
+            textoEstadoPie.textContent = "No se pudo cargar la conversación seleccionada.";
+            textoEstadoCabecera.textContent = "Error";
+        }
     }
 
     async function enviarMensaje() {
@@ -398,9 +553,7 @@
 
             while (true) {
                 const { done, value } = await lector.read();
-                if (done) {
-                    break;
-                }
+                if (done) break;
 
                 const fragmento = decodificador.decode(value, { stream: true });
                 const lineas = fragmento.split("\n");
@@ -424,6 +577,8 @@
             textoEstadoCabecera.textContent = "Conectado";
             indicadorEstado.style.backgroundColor = "#22c55e";
             indicadorEstado.style.boxShadow = "0 0 0 4px rgba(34, 197, 94, 0.25)";
+
+            await cargarResumenConversaciones();
         } catch (error) {
             mensajeTutor.textContent = "Se produjo un error al obtener la respuesta.";
             textoEstadoPie.textContent = "Error en la conexión con el servidor.";
@@ -452,14 +607,16 @@
                 body: "{}"
             });
 
-            historial.length = 0;
             areaChat.innerHTML = "";
+            historial.length = 0;
             agregarMensaje("La conversación ha sido reiniciada. Puede comenzar una nueva consulta cuando lo desee.", false);
 
             textoEstadoPie.textContent = "Listo para recibir mensajes.";
             textoEstadoCabecera.textContent = "Conectado";
             indicadorEstado.style.backgroundColor = "#22c55e";
             indicadorEstado.style.boxShadow = "0 0 0 4px rgba(34, 197, 94, 0.25)";
+
+            await cargarResumenConversaciones();
         } catch (error) {
             textoEstadoPie.textContent = "No se pudo reiniciar la conversación en el servidor.";
             textoEstadoCabecera.textContent = "Error";
@@ -483,6 +640,8 @@
     textoEstadoCabecera.textContent = "Conectado";
     indicadorEstado.style.backgroundColor = "#22c55e";
     indicadorEstado.style.boxShadow = "0 0 0 4px rgba(34, 197, 94, 0.25)";
+
+    cargarResumenConversaciones();
 </script>
 </body>
 </html>

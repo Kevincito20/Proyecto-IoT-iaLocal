@@ -13,6 +13,6 @@ async def mostrar_interfaz():
     Devuelve la interfaz HTML de prueba para el chat.
     """
     ruta_base = Path(__file__).resolve().parent.parent
-    ruta_recurso = ruta_base / "recursos" / "interfaz.html"
+    ruta_recurso = ruta_base / "resource" / "interfaz.html"
 
     return ruta_recurso.read_text(encoding="utf-8")

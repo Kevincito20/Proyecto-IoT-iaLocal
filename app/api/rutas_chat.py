@@ -1,14 +1,14 @@
 from fastapi import APIRouter
 from fastapi.responses import StreamingResponse
 
-from app.modelos.chat import PeticionChat
-from app.servicios.servicio_tutor import construir_prompt_tutor
-from app.servicios.servicio_ollama import generar_stream_respuesta
-from app.servicios.servicio_conversacion import (
+from app.models.chat import PeticionChat
+from app.service.servicio_tutor import construir_prompt_tutor
+from app.service.servicio_ollama import generar_stream_respuesta
+from app.service.servicio_conversacion import (
     agregar_mensaje,
     reiniciar_conversacion,
 )
-from app.utilidades.util_texto import extraer_mensaje_actual
+from app.utils.util_texto import extraer_mensaje_actual
 
 
 enrutador_chat = APIRouter(tags=["chat"])
