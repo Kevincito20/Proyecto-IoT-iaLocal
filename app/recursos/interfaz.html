@@ -1,0 +1,488 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8" />
+    <title>Tutor local</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <style>
+        :root {
+            color-scheme: dark;
+            --color-fondo: #050816;
+            --color-fondo-panel: #0b1020;
+            --color-borde-panel: #1f2937;
+            --color-acentp: #22c55e;
+            --color-acentp-suave: #16a34a;
+            --color-texto-principal: #f9fafb;
+            --color-texto-secundario: #9ca3af;
+            --color-mensaje-usuario: #1f2937;
+            --color-mensaje-tutor: #020617;
+            --color-borde-mensaje-tutor: #374151;
+            --color-boton: #22c55e;
+            --color-boton-hover: #16a34a;
+            --color-boton-peligro: #ef4444;
+            --color-boton-peligro-hover: #dc2626;
+        }
+
+        * {
+            box-sizing: border-box;
+        }
+
+        body {
+            margin: 0;
+            min-height: 100vh;
+            font-family: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+            background: radial-gradient(circle at top, #1f2937 0, #020617 55%, #000 100%);
+            color: var(--color-texto-principal);
+            display: flex;
+            align-items: stretch;
+            justify-content: center;
+        }
+
+        .contenedor-principal {
+            width: 100%;
+            max-width: 960px;
+            margin: 0 auto;
+            padding: 16px;
+            display: flex;
+        }
+
+        .panel {
+            background: var(--color-fondo-panel);
+            border-radius: 16px;
+            border: 1px solid var(--color-borde-panel);
+            display: flex;
+            flex-direction: column;
+            flex: 1;
+            min-height: 80vh;
+            max-height: 92vh;
+            box-shadow: 0 24px 60px rgba(15, 23, 42, 0.75);
+            overflow: hidden;
+        }
+
+        .encabezado {
+            padding: 12px 16px;
+            border-bottom: 1px solid #111827;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            background: linear-gradient(to right, #020617, #030712);
+        }
+
+        .titulo {
+            display: flex;
+            flex-direction: column;
+            gap: 2px;
+        }
+
+        .titulo-principal {
+            font-size: 1rem;
+            font-weight: 600;
+            letter-spacing: 0.04em;
+            text-transform: uppercase;
+        }
+
+        .titulo-secundario {
+            font-size: 0.8rem;
+            color: var(--color-texto-secundario);
+        }
+
+        .estado-sistema {
+            font-size: 0.8rem;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            color: var(--color-texto-secundario);
+        }
+
+        .indicador-estado {
+            width: 9px;
+            height: 9px;
+            border-radius: 999px;
+            background: var(--color-acentp);
+            box-shadow: 0 0 0 4px rgba(34, 197, 94, 0.25);
+        }
+
+        .area-chat {
+            flex: 1;
+            padding: 16px;
+            overflow-y: auto;
+            scroll-behavior: smooth;
+        }
+
+        .mensaje {
+            max-width: 70%;
+            border-radius: 12px;
+            padding: 10px 12px;
+            margin-bottom: 12px;
+            font-size: 0.95rem;
+            line-height: 1.5;
+            white-space: pre-wrap;
+            word-wrap: break-word;
+        }
+
+        .mensaje-usuario {
+            margin-left: auto;
+            background: var(--color-mensaje-usuario);
+            color: var(--color-texto-principal);
+        }
+
+        .mensaje-tutor {
+            margin-right: auto;
+            background: var(--color-mensaje-tutor);
+            border: 1px solid var(--color-borde-mensaje-tutor);
+            color: var(--color-texto-principal);
+        }
+
+        .pie {
+            border-top: 1px solid #111827;
+            padding: 10px 16px 14px 16px;
+            background: linear-gradient(to top, #020617, #030712);
+        }
+
+        .pie-superior {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 6px;
+            font-size: 0.8rem;
+            color: var(--color-texto-secundario);
+        }
+
+        .estado-texto {
+            font-size: 0.8rem;
+            color: var(--color-texto-secundario);
+        }
+
+        .controles-chat {
+            display: flex;
+            align-items: flex-end;
+            gap: 8px;
+        }
+
+        .campo-texto {
+            flex: 1;
+            position: relative;
+        }
+
+        .campo-texto textarea {
+            width: 100%;
+            max-height: 160px;
+            min-height: 48px;
+            border-radius: 12px;
+            border: 1px solid #1f2937;
+            padding: 10px 12px;
+            background: #020617;
+            color: var(--color-texto-principal);
+            font-family: inherit;
+            font-size: 0.95rem;
+            resize: vertical;
+            outline: none;
+        }
+
+        .campo-texto textarea:focus {
+            border-color: var(--color-acentp);
+            box-shadow: 0 0 0 1px rgba(34, 197, 94, 0.5);
+        }
+
+        .botones {
+            display: flex;
+            flex-direction: row;
+            gap: 8px;
+        }
+
+        .boton {
+            border-radius: 999px;
+            border: none;
+            padding: 9px 16px;
+            font-size: 0.9rem;
+            font-weight: 500;
+            cursor: pointer;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            white-space: nowrap;
+            transition: background-color 0.16s ease, transform 0.12s ease, box-shadow 0.16s ease;
+        }
+
+        .boton-enviar {
+            background: var(--color-boton);
+            color: #022c22;
+            box-shadow: 0 10px 30px rgba(34, 197, 94, 0.4);
+        }
+
+        .boton-enviar:hover:not(:disabled) {
+            background: var(--color-boton-hover);
+            transform: translateY(-1px);
+            box-shadow: 0 14px 40px rgba(34, 197, 94, 0.55);
+        }
+
+        .boton-enviar:disabled {
+            background: #374151;
+            color: #9ca3af;
+            cursor: not-allowed;
+            box-shadow: none;
+        }
+
+        .boton-reiniciar {
+            background: var(--color-boton-peligro);
+            color: #fef2f2;
+        }
+
+        .boton-reiniciar:hover:not(:disabled) {
+            background: var(--color-boton-peligro-hover);
+            transform: translateY(-1px);
+            box-shadow: 0 8px 24px rgba(239, 68, 68, 0.4);
+        }
+
+        .boton-reiniciar:disabled {
+            background: #4b5563;
+            cursor: not-allowed;
+            box-shadow: none;
+        }
+
+        .texto-ayuda {
+            font-size: 0.75rem;
+            color: var(--color-texto-secundario);
+            margin-top: 4px;
+        }
+
+        .texto-ayuda span {
+            color: var(--color-acentp);
+        }
+
+        @media (max-width: 768px) {
+            .contenedor-principal {
+                padding: 8px;
+            }
+
+            .panel {
+                min-height: 92vh;
+                max-height: 96vh;
+            }
+
+            .mensaje {
+                max-width: 85%;
+            }
+        }
+    </style>
+</head>
+<body>
+<div class="contenedor-principal">
+    <div class="panel">
+        <div class="encabezado">
+            <div class="titulo">
+                <div class="titulo-principal">Tutor local</div>
+                <div class="titulo-secundario">
+                    Asistente educativo ejecutándose en la red local
+                </div>
+            </div>
+            <div class="estado-sistema">
+                <div class="indicador-estado" id="indicadorEstado"></div>
+                <span id="textoEstadoCabecera">Conectando...</span>
+            </div>
+        </div>
+
+        <div id="areaChat" class="area-chat">
+            <div class="mensaje mensaje-tutor">
+                Bienvenido. Escriba una pregunta sobre un tema escolar y la respuesta se generará en esta conversación.
+            </div>
+        </div>
+
+        <div class="pie">
+            <div class="pie-superior">
+                <div class="estado-texto" id="textoEstadoPie">
+                    Listo para recibir mensajes.
+                </div>
+                <div class="texto-ayuda">
+                    Presione <span>Enter</span> para enviar, <span>Shift + Enter</span> para saltar de línea.
+                </div>
+            </div>
+            <div class="controles-chat">
+                <div class="campo-texto">
+                    <textarea id="entradaMensaje" rows="2" placeholder="Escriba su mensaje aquí..."></textarea>
+                </div>
+                <div class="botones">
+                    <button id="botonEnviar" class="boton boton-enviar">Enviar</button>
+                    <button id="botonReiniciar" class="boton boton-reiniciar" type="button">Reiniciar</button>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+    const areaChat = document.getElementById("areaChat");
+    const entradaMensaje = document.getElementById("entradaMensaje");
+    const botonEnviar = document.getElementById("botonEnviar");
+    const botonReiniciar = document.getElementById("botonReiniciar");
+    const textoEstadoPie = document.getElementById("textoEstadoPie");
+    const textoEstadoCabecera = document.getElementById("textoEstadoCabecera");
+    const indicadorEstado = document.getElementById("indicadorEstado");
+
+    const historial = [];
+
+    const URL_BACKEND = "";
+    const TOKEN_API = "mi_token_secreto_123";
+
+    function agregarMensaje(texto, esUsuario) {
+        const elemento = document.createElement("div");
+        elemento.classList.add("mensaje");
+        if (esUsuario) {
+            elemento.classList.add("mensaje-usuario");
+        } else {
+            elemento.classList.add("mensaje-tutor");
+        }
+        elemento.textContent = texto;
+        areaChat.appendChild(elemento);
+        areaChat.scrollTop = areaChat.scrollHeight;
+        return elemento;
+    }
+
+    function construirTextoConversacion(mensajeActual) {
+        if (historial.length === 0) {
+            return mensajeActual;
+        }
+
+        const ultimos = historial.slice(-4);
+        const partes = ultimos.map((entrada) => {
+            const etiqueta = entrada.rol === "usuario" ? "Estudiante" : "Tutor";
+            return etiqueta + ": " + entrada.texto;
+        });
+
+        const textoHistorial = partes.join("\n");
+        const textoCompleto =
+            "Historial reciente de la conversación:\n" +
+            textoHistorial +
+            "\n\nMensaje actual del estudiante: \"" +
+            mensajeActual +
+            "\"";
+
+        return textoCompleto;
+    }
+
+    async function enviarMensaje() {
+        const texto = entradaMensaje.value.trim();
+        if (!texto) {
+            return;
+        }
+
+        agregarMensaje(texto, true);
+        historial.push({ rol: "usuario", texto });
+
+        entradaMensaje.value = "";
+        botonEnviar.disabled = true;
+        entradaMensaje.disabled = true;
+        textoEstadoPie.textContent = "Generando respuesta del tutor...";
+        textoEstadoCabecera.textContent = "Procesando respuesta";
+
+        const textoConversacion = construirTextoConversacion(texto);
+        const mensajeTutor = agregarMensaje("", false);
+
+        try {
+            const respuesta = await fetch((URL_BACKEND || "") + "/api/chat/stream", {
+                method: "POST",
+                headers: {
+                    "Content-Type": "application/json",
+                    "X-Token-Api": TOKEN_API
+                },
+                body: JSON.stringify({ mensaje: textoConversacion })
+            });
+
+            if (!respuesta.ok) {
+                throw new Error("Error en la petición");
+            }
+
+            const lector = respuesta.body.getReader();
+            const decodificador = new TextDecoder();
+            let acumulado = "";
+
+            while (true) {
+                const { done, value } = await lector.read();
+                if (done) {
+                    break;
+                }
+
+                const fragmento = decodificador.decode(value, { stream: true });
+                const lineas = fragmento.split("\n");
+
+                for (const linea of lineas) {
+                    if (linea.startsWith("data: ")) {
+                        const textoFragmento = linea.slice(6);
+                        acumulado += textoFragmento;
+                        mensajeTutor.textContent = acumulado;
+                        areaChat.scrollTop = areaChat.scrollHeight;
+                    }
+                }
+            }
+
+            const textoFinal = mensajeTutor.textContent.trim();
+            if (textoFinal) {
+                historial.push({ rol: "tutor", texto: textoFinal });
+            }
+
+            textoEstadoPie.textContent = "Listo para recibir mensajes.";
+            textoEstadoCabecera.textContent = "Conectado";
+            indicadorEstado.style.backgroundColor = "#22c55e";
+            indicadorEstado.style.boxShadow = "0 0 0 4px rgba(34, 197, 94, 0.25)";
+        } catch (error) {
+            mensajeTutor.textContent = "Se produjo un error al obtener la respuesta.";
+            textoEstadoPie.textContent = "Error en la conexión con el servidor.";
+            textoEstadoCabecera.textContent = "Error";
+            indicadorEstado.style.backgroundColor = "#ef4444";
+            indicadorEstado.style.boxShadow = "0 0 0 4px rgba(239, 68, 68, 0.25)";
+        } finally {
+            botonEnviar.disabled = false;
+            entradaMensaje.disabled = false;
+            entradaMensaje.focus();
+        }
+    }
+
+    async function reiniciarConversacion() {
+        try {
+            botonReiniciar.disabled = true;
+            textoEstadoPie.textContent = "Reiniciando conversación...";
+            textoEstadoCabecera.textContent = "Reiniciando";
+
+            const respuesta = await fetch((URL_BACKEND || "") + "/api/chat/reiniciar", {
+                method: "POST",
+                headers: {
+                    "Content-Type": "application/json",
+                    "X-Token-Api": TOKEN_API
+                },
+                body: "{}"
+            });
+
+            historial.length = 0;
+            areaChat.innerHTML = "";
+            agregarMensaje("La conversación ha sido reiniciada. Puede comenzar una nueva consulta cuando lo desee.", false);
+
+            textoEstadoPie.textContent = "Listo para recibir mensajes.";
+            textoEstadoCabecera.textContent = "Conectado";
+            indicadorEstado.style.backgroundColor = "#22c55e";
+            indicadorEstado.style.boxShadow = "0 0 0 4px rgba(34, 197, 94, 0.25)";
+        } catch (error) {
+            textoEstadoPie.textContent = "No se pudo reiniciar la conversación en el servidor.";
+            textoEstadoCabecera.textContent = "Error";
+            indicadorEstado.style.backgroundColor = "#ef4444";
+            indicadorEstado.style.boxShadow = "0 0 0 4px rgba(239, 68, 68, 0.25)";
+        } finally {
+            botonReiniciar.disabled = false;
+        }
+    }
+
+    botonEnviar.addEventListener("click", enviarMensaje);
+    botonReiniciar.addEventListener("click", reiniciarConversacion);
+
+    entradaMensaje.addEventListener("keydown", (evento) => {
+        if (evento.key === "Enter" && !evento.shiftKey) {
+            evento.preventDefault();
+            enviarMensaje();
+        }
+    });
+
+    textoEstadoCabecera.textContent = "Conectado";
+    indicadorEstado.style.backgroundColor = "#22c55e";
+    indicadorEstado.style.boxShadow = "0 0 0 4px rgba(34, 197, 94, 0.25)";
+</script>
+</body>
+</html>
